@@ -1,58 +1,39 @@
 
 import React, { useState, useEffect } from 'react';
-import { Droplet, BarChart3, Recycle, Gauge, ExternalLink, ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Droplet, ExternalLink, ChevronDown } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import CitySearch from '../components/CitySearch';
-import MetricsCard from '../components/MetricsCard';
-import WaterUsageChart from '../components/WaterUsageChart';
-import CityComparison from '../components/CityComparison';
 import Footer from '../components/Footer';
 import { getCityById } from '../utils/cityData';
 
 const Index = () => {
-  const [selectedCityId, setSelectedCityId] = useState('nyc');
-  const [scrollPosition, setScrollPosition] = useState(0);
+  const [selectedCityId, setSelectedCityId] = useState('');
   const [isVisible, setIsVisible] = useState(false);
-  
-  const selectedCity = getCityById(selectedCityId);
+  const navigate = useNavigate();
   
   useEffect(() => {
-    const handleScroll = () => {
-      const position = window.scrollY;
-      setScrollPosition(position);
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    
     // Add animation delay on initial load
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, 200);
     
     return () => {
-      window.removeEventListener('scroll', handleScroll);
       clearTimeout(timer);
     };
   }, []);
   
-  if (!selectedCity) return null;
-  
-  // Get trend indicators for metrics cards
-  const consumptionTrend = selectedCity.waterUsage.trend === 'decreasing' 
-    ? 'down' 
-    : selectedCity.waterUsage.trend === 'increasing' 
-      ? 'up' 
-      : 'neutral';
-  
-  // Calculate recycling trend by comparing the first and last data points
-  const recyclingData = selectedCity.waterRecycling;
-  const firstRecyclingValue = recyclingData[0].percentage;
-  const lastRecyclingValue = recyclingData[recyclingData.length - 1].percentage;
-  const recyclingTrend = lastRecyclingValue > firstRecyclingValue ? 'up' : lastRecyclingValue < firstRecyclingValue ? 'down' : 'neutral';
+  // Handle city selection and redirect to dashboard
+  const handleCitySelect = (cityId: string) => {
+    setSelectedCityId(cityId);
+    navigate(`/dashboard?cityId=${cityId}`, { 
+      state: { selectedCityId: cityId } 
+    });
+  };
   
   return (
     <div className="min-h-screen relative">
-      <Navbar />
+      <Navbar activePage="home" />
       
       {/* Hero Section */}
       <section className="pt-28 pb-16 px-6 relative overflow-hidden">
@@ -92,156 +73,64 @@ const Index = () => {
             className="animate-slide-down"
             style={{ animationDelay: "0.4s" }}
           >
-            <CitySearch onSelect={setSelectedCityId} selectedCityId={selectedCityId} />
+            <CitySearch onSelect={handleCitySelect} selectedCityId={selectedCityId} />
           </div>
           
           <a 
-            href="#insights"
+            href="#about"
             className="flex items-center justify-center mt-12 text-sm text-muted-foreground hover:text-foreground transition-colors animate-slide-down mx-auto"
             style={{ animationDelay: "0.5s" }}
           >
-            Explore Insights
+            Learn More
             <ChevronDown className="ml-1 h-4 w-4 animate-bounce" />
           </a>
         </div>
       </section>
       
-      {/* City Overview */}
-      <section id="insights" className="py-8 px-6">
+      {/* About Section */}
+      <section id="about" className="py-16 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <h2 className={`text-2xl font-semibold mb-2 transition-all duration-500 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-4'}`}>
-              Water Analysis: {selectedCity.name}, {selectedCity.country}
-            </h2>
-            <p className={`text-muted-foreground transition-all duration-500 delay-100 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-4'}`}>
-              Population: {selectedCity.population} million | Latest data as of 2022
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl font-bold mb-4">Why Water Analytics Matters</h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Understanding water usage patterns helps cities develop sustainable water management strategies
+              for future generations.
             </p>
           </div>
           
-          {/* Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-            <MetricsCard 
-              title="Daily Water Usage"
-              value={`${selectedCity.waterUsage.totalDaily}`}
-              subtitle={`Million ${selectedCity.waterUsage.unit}/day`}
-              icon={<Droplet className="h-5 w-5" />}
-              trend={consumptionTrend === 'up' ? 'down' : consumptionTrend === 'down' ? 'up' : 'neutral'}
-              className={`transition-all duration-500 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-            />
-            
-            <MetricsCard 
-              title="Per Capita Usage"
-              value={`${selectedCity.waterUsage.perCapita}`}
-              subtitle={`${selectedCity.waterUsage.unit}/person/day`}
-              icon={<BarChart3 className="h-5 w-5" />}
-              trend={consumptionTrend === 'up' ? 'down' : consumptionTrend === 'down' ? 'up' : 'neutral'}
-              className={`transition-all duration-500 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-            />
-            
-            <MetricsCard 
-              title="Recycling Rate"
-              value={`${lastRecyclingValue}%`}
-              subtitle="Of total water recycled"
-              icon={<Recycle className="h-5 w-5" />}
-              trend={recyclingTrend}
-              className={`transition-all duration-500 delay-400 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-            />
-            
-            <MetricsCard 
-              title="Sustainability Score"
-              value={selectedCity.sustainabilityScore}
-              subtitle="Out of 100"
-              icon={<Gauge className="h-5 w-5" />}
-              trend={selectedCity.sustainabilityScore > 70 ? 'up' : selectedCity.sustainabilityScore < 50 ? 'down' : 'neutral'}
-              className={`transition-all duration-500 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-            />
-          </div>
-          
-          {/* Charts and Visualizations */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <WaterUsageChart 
-              city={selectedCity} 
-              className={`transition-all duration-500 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-            />
-            
-            <CityComparison 
-              currentCityId={selectedCityId} 
-              className={`transition-all duration-500 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-            />
-          </div>
-          
-          {/* Water Sources */}
-          <div className={`glass-card p-5 mb-8 transition-all duration-500 delay-400 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            <div className="mb-4">
-              <h3 className="text-lg font-medium">Water Sources</h3>
-              <p className="text-sm text-muted-foreground">
-                Distribution of {selectedCity.name}'s water supply by source
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            <div className="glass-card p-6 text-center">
+              <div className="w-12 h-12 bg-water-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Droplet className="h-6 w-6 text-water-600" />
+              </div>
+              <h3 className="text-xl font-medium mb-2">Conservation</h3>
+              <p className="text-muted-foreground">
+                Identifying usage patterns helps develop effective conservation strategies and policies.
               </p>
             </div>
             
-            <div className="space-y-5">
-              {selectedCity.waterSources.map((source, index) => (
-                <div key={index}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>{source.source}</span>
-                    <span className="font-medium">{source.percentage}%</span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                    <div 
-                      className="h-full rounded-full bg-water-500" 
-                      style={{ 
-                        width: `${source.percentage}%`,
-                        transition: 'width 1s ease-in-out',
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          {/* Challenges and Initiatives */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className={`glass-card p-5 transition-all duration-500 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-              <div className="mb-4">
-                <h3 className="text-lg font-medium">Key Challenges</h3>
-                <p className="text-sm text-muted-foreground">
-                  Current water management challenges in {selectedCity.name}
-                </p>
+            <div className="glass-card p-6 text-center">
+              <div className="w-12 h-12 bg-water-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-water-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
               </div>
-              
-              <ul className="space-y-3">
-                {selectedCity.challenges.map((challenge, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-water-500 mt-1.5 mr-2" />
-                    <span>{challenge}</span>
-                  </li>
-                ))}
-              </ul>
+              <h3 className="text-xl font-medium mb-2">Efficiency</h3>
+              <p className="text-muted-foreground">
+                Data-driven insights help optimize distribution systems and reduce water waste.
+              </p>
             </div>
             
-            <div className={`glass-card p-5 transition-all duration-500 delay-600 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-              <div className="mb-4">
-                <h3 className="text-lg font-medium">Sustainability Initiatives</h3>
-                <p className="text-sm text-muted-foreground">
-                  Notable water conservation programs in {selectedCity.name}
-                </p>
+            <div className="glass-card p-6 text-center">
+              <div className="w-12 h-12 bg-water-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-water-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
-              
-              <div className="space-y-4">
-                {selectedCity.initiatives.map((initiative, index) => (
-                  <div key={index} className="border-l-2 border-eco-500 pl-4 py-1">
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-medium">{initiative.name}</h4>
-                      <span className="text-xs bg-eco-100 text-eco-800 px-2 py-0.5 rounded-full">
-                        {initiative.year}
-                      </span>
-                    </div>
-                    <p className="text-sm mt-1">{initiative.description}</p>
-                    <p className="text-xs text-eco-600 mt-1">{initiative.impact}</p>
-                  </div>
-                ))}
-              </div>
+              <h3 className="text-xl font-medium mb-2">Sustainability</h3>
+              <p className="text-muted-foreground">
+                Understanding current usage helps plan for future sustainability and climate resilience.
+              </p>
             </div>
           </div>
         </div>
