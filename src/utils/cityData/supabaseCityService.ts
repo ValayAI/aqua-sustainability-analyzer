@@ -47,10 +47,10 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
     console.log(`Looking for city with name: "${cityNameFromId}"`);
     
     // Exact match query
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from('CityWaterUsage')
       .select('*')
-      .eq('city_name', cityNameFromId)
+      .ilike('city_name', cityNameFromId)
       .maybeSingle();
     
     if (error) {
@@ -58,32 +58,14 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
       return getDefaultCityById(id);
     }
     
-    // If exact match found
+    // If match found
     if (data) {
-      console.log(`Found exact match for: ${cityNameFromId}`, data);
+      console.log(`Found match for: ${cityNameFromId}`, data);
       return transformCityData(data as SupabaseCity);
     }
     
-    // Try case-insensitive match
-    console.log(`No exact match, trying case-insensitive search for: ${cityNameFromId}`);
-    const { data: caseInsensitiveData, error: ciError } = await supabase
-      .from('CityWaterUsage')
-      .select('*')
-      .ilike('city_name', cityNameFromId)
-      .maybeSingle();
-    
-    if (ciError) {
-      console.error('Error in case-insensitive search:', ciError);
-      return getDefaultCityById(id);
-    }
-    
-    if (caseInsensitiveData) {
-      console.log(`Found case-insensitive match for: ${cityNameFromId}`, caseInsensitiveData);
-      return transformCityData(caseInsensitiveData as SupabaseCity);
-    }
-    
-    // Try partial match
-    console.log(`No case-insensitive match, trying partial match search`);
+    // Try partial match if exact match fails
+    console.log(`No exact match found, trying partial match for: ${cityNameFromId}`);
     const firstWord = cityNameFromId.split(' ')[0];
     
     const { data: partialMatchData, error: pmError } = await supabase
