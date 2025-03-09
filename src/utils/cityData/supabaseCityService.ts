@@ -69,7 +69,7 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
       
     if (idData) {
       console.log(`Found city with ID: ${id}`, idData);
-      return transformCityData(idData as SupabaseCity);
+      return await transformCityData(idData as SupabaseCity);
     }
     
     if (idError) {
@@ -98,7 +98,7 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
     // If match found
     if (data) {
       console.log(`Found match for: ${cityNameFromId}`, data);
-      return transformCityData(data as SupabaseCity);
+      return await transformCityData(data as SupabaseCity);
     }
     
     // Try partial match if exact match fails
@@ -121,7 +121,7 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
     
     if (partialMatchData) {
       console.log(`Found partial match using: ${partialQuery}`, partialMatchData);
-      return transformCityData(partialMatchData as SupabaseCity);
+      return await transformCityData(partialMatchData as SupabaseCity);
     }
     
     // If all searches fail, use default data

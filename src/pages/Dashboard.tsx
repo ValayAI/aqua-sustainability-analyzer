@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Droplet, BarChart3, Recycle, Gauge } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
+import { toast } from 'sonner';
 import Navbar from '../components/Navbar';
 import MetricsCard from '../components/MetricsCard';
 import WaterUsageChart from '../components/WaterUsageChart';
@@ -16,7 +17,7 @@ const Dashboard = () => {
   const [isVisible, setIsVisible] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   
   // Get the city ID from the URL params or state
   const searchParams = new URLSearchParams(location.search);
@@ -29,9 +30,21 @@ const Dashboard = () => {
     queryKey: ['city', selectedCityId],
     queryFn: async () => {
       console.log(`Fetching data for city ID: ${selectedCityId}`);
-      const cityData = await getSupabaseCityById(selectedCityId);
-      console.log('Fetched city data:', cityData);
-      return cityData;
+      try {
+        toast.loading(`Loading ${selectedCityId.replace(/_/g, ' ')} data...`);
+        const cityData = await getSupabaseCityById(selectedCityId);
+        toast.dismiss();
+        if (cityData) {
+          toast.success(`Loaded data for ${cityData.name}`);
+        }
+        console.log('Fetched city data:', cityData);
+        return cityData;
+      } catch (err) {
+        toast.dismiss();
+        toast.error(`Error loading city data`);
+        console.error('Error in query function:', err);
+        throw err;
+      }
     },
     staleTime: 60000, // 1 minute
     retry: 2,
@@ -66,14 +79,14 @@ const Dashboard = () => {
   // Show toast notification if there's an error
   useEffect(() => {
     if (error) {
-      toast({
+      uiToast({
         title: "Error loading city data",
         description: "Could not fetch water data for this city. Please try again later.",
         variant: "destructive",
       });
       console.error("Error fetching city data:", error);
     }
-  }, [error, toast]);
+  }, [error, uiToast]);
   
   // Show loading state
   if (isLoading) {

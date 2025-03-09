@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';

@@ -10,6 +10,32 @@ export interface RecyclingData {
   percentage: number;
 }
 
+export interface SupabaseWaterConsumptionTrend {
+  id: string;
+  city_id: string;
+  year: number;
+  value: number;
+  created_at: string;
+}
+
+export interface SupabaseWaterSource {
+  id: string;
+  city_id: string;
+  source_name: string;
+  percentage: number;
+  created_at: string;
+}
+
+export interface SupabaseSustainabilityInitiative {
+  id: string;
+  city_id: string;
+  name: string;
+  description: string;
+  year: number;
+  impact: string | null;
+  created_at: string;
+}
+
 export interface SupabaseCity {
   city_name: string;
   country: string;
@@ -20,6 +46,7 @@ export interface SupabaseCity {
   sustainability_score: number;
   key_challenges: string;
   tier: string;
+  id: string;
 }
 
 export interface City {

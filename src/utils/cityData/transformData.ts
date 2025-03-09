@@ -1,8 +1,9 @@
 
-import { City, SupabaseCity } from "../types/cityTypes";
+import { City, SupabaseCity, SupabaseWaterConsumptionTrend, SupabaseWaterSource, SupabaseSustainabilityInitiative } from "../types/cityTypes";
+import { supabase } from "@/integrations/supabase/client";
 
 // Convert Supabase city data to the format expected by components
-export const transformCityData = (supabaseCity: SupabaseCity): City => {
+export const transformCityData = async (supabaseCity: SupabaseCity): Promise<City> => {
   console.log("Transforming Supabase city data:", supabaseCity);
   
   // Parse challenges from the key_challenges string
@@ -11,15 +12,34 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
     challenges = supabaseCity.key_challenges.split(',').map(challenge => challenge.trim());
   }
 
-  // Generate water consumption trends based on the daily usage
-  const baseValue = supabaseCity.daily_water_usage_mgd || 100;
-  const waterConsumption = [
-    { year: 2018, value: Math.round(baseValue * 1.1) },
-    { year: 2019, value: Math.round(baseValue * 1.05) },
-    { year: 2020, value: Math.round(baseValue) },
-    { year: 2021, value: Math.round(baseValue * 0.98) },
-    { year: 2022, value: Math.round(baseValue * 0.95) },
+  // Fetch water consumption trends from WaterConsumptionTrend table
+  let waterConsumption = [
+    { year: 2018, value: Math.round((supabaseCity.daily_water_usage_mgd || 100) * 1.1) },
+    { year: 2019, value: Math.round((supabaseCity.daily_water_usage_mgd || 100) * 1.05) },
+    { year: 2020, value: Math.round(supabaseCity.daily_water_usage_mgd || 100) },
+    { year: 2021, value: Math.round((supabaseCity.daily_water_usage_mgd || 100) * 0.98) },
+    { year: 2022, value: Math.round((supabaseCity.daily_water_usage_mgd || 100) * 0.95) },
   ];
+  
+  try {
+    const { data: consumptionData, error: consumptionError } = await supabase
+      .from('WaterConsumptionTrend')
+      .select('*')
+      .eq('city_id', supabaseCity.id)
+      .order('year', { ascending: true });
+      
+    if (consumptionData && consumptionData.length > 0 && !consumptionError) {
+      waterConsumption = consumptionData.map((item: SupabaseWaterConsumptionTrend) => ({
+        year: item.year,
+        value: Number(item.value)
+      }));
+      console.log("Fetched water consumption trends:", waterConsumption);
+    } else if (consumptionError) {
+      console.error("Error fetching water consumption trends:", consumptionError);
+    }
+  } catch (err) {
+    console.error("Error in water consumption trends fetch:", err);
+  }
 
   // Generate recycling trends - using the actual recycling rate
   const recyclingRate = supabaseCity["recycling_rate (%)"] || 10;
@@ -31,15 +51,34 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
     { year: 2022, percentage: Math.round(recyclingRate) },
   ];
 
-  // Default water sources
-  const waterSources = [
+  // Fetch water sources from WaterSources table
+  let waterSources = [
     { source: "Reservoirs", percentage: 70 },
     { source: "Groundwater", percentage: 20 },
     { source: "Other", percentage: 10 },
   ];
+  
+  try {
+    const { data: sourcesData, error: sourcesError } = await supabase
+      .from('WaterSources')
+      .select('*')
+      .eq('city_id', supabaseCity.id);
+      
+    if (sourcesData && sourcesData.length > 0 && !sourcesError) {
+      waterSources = sourcesData.map((item: SupabaseWaterSource) => ({
+        source: item.source_name,
+        percentage: Number(item.percentage)
+      }));
+      console.log("Fetched water sources:", waterSources);
+    } else if (sourcesError) {
+      console.error("Error fetching water sources:", sourcesError);
+    }
+  } catch (err) {
+    console.error("Error in water sources fetch:", err);
+  }
 
-  // Sample initiatives data
-  const initiatives = [
+  // Fetch sustainability initiatives from SustainabilityInitiatives table
+  let initiatives = [
     {
       name: "Water Conservation Program",
       description: "Citywide initiative to reduce water usage",
@@ -53,6 +92,28 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
       impact: "Improved stormwater management by 15%"
     }
   ];
+  
+  try {
+    const { data: initiativesData, error: initiativesError } = await supabase
+      .from('SustainabilityInitiatives')
+      .select('*')
+      .eq('city_id', supabaseCity.id)
+      .order('year', { ascending: false });
+      
+    if (initiativesData && initiativesData.length > 0 && !initiativesError) {
+      initiatives = initiativesData.map((item: SupabaseSustainabilityInitiative) => ({
+        name: item.name,
+        description: item.description,
+        year: item.year,
+        impact: item.impact || "Impact data not available"
+      }));
+      console.log("Fetched sustainability initiatives:", initiatives);
+    } else if (initiativesError) {
+      console.error("Error fetching sustainability initiatives:", initiativesError);
+    }
+  } catch (err) {
+    console.error("Error in sustainability initiatives fetch:", err);
+  }
 
   // Parse population string to number (in millions)
   let populationNumber = 1.0; // Default fallback
@@ -95,7 +156,7 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
 
   // Build the transformed city object
   const transformedCity: City = {
-    id: supabaseCity.city_name.toLowerCase().replace(/\s+/g, '_'),
+    id: supabaseCity.id,
     name: supabaseCity.city_name,
     country: supabaseCity.country || 'Unknown',
     population: populationNumber,

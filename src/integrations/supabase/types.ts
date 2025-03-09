@@ -48,6 +48,108 @@ export type Database = {
         }
         Relationships: []
       }
+      SustainabilityInitiatives: {
+        Row: {
+          city_id: string
+          created_at: string
+          description: string
+          id: string
+          impact: string | null
+          name: string
+          year: number
+        }
+        Insert: {
+          city_id: string
+          created_at?: string
+          description: string
+          id?: string
+          impact?: string | null
+          name: string
+          year: number
+        }
+        Update: {
+          city_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          impact?: string | null
+          name?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "SustainabilityInitiatives_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "CityWaterUsage"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      WaterConsumptionTrend: {
+        Row: {
+          city_id: string
+          created_at: string
+          id: string
+          value: number
+          year: number
+        }
+        Insert: {
+          city_id: string
+          created_at?: string
+          id?: string
+          value: number
+          year: number
+        }
+        Update: {
+          city_id?: string
+          created_at?: string
+          id?: string
+          value?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "WaterConsumptionTrend_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "CityWaterUsage"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      WaterSources: {
+        Row: {
+          city_id: string
+          created_at: string
+          id: string
+          percentage: number
+          source_name: string
+        }
+        Insert: {
+          city_id: string
+          created_at?: string
+          id?: string
+          percentage: number
+          source_name: string
+        }
+        Update: {
+          city_id?: string
+          created_at?: string
+          id?: string
+          percentage?: number
+          source_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "WaterSources_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "CityWaterUsage"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
