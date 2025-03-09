@@ -23,7 +23,10 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
     queryKey: ['cities'],
     queryFn: async () => {
       try {
-        return await getSupabaseCities();
+        console.log("Fetching cities from getSupabaseCities");
+        const citiesData = await getSupabaseCities();
+        console.log("Cities fetched:", citiesData);
+        return citiesData;
       } catch (error) {
         console.error('Failed to fetch cities:', error);
         toast.error('Could not load cities. Please try again later.');
@@ -40,30 +43,52 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
   // Set major cities when cities data is loaded
   useEffect(() => {
     if (cities.length > 0) {
+      console.log("Setting major cities from available cities:", cities);
       // Define major cities to show by default (these are large, well-known cities from our dataset)
       const majorCityNames = ['New York', 'Tokyo', 'London', 'Shanghai', 'Los Angeles', 'Delhi', 'Beijing'];
       const foundMajorCities = cities
         .filter(city => majorCityNames.includes(city.name))
         .slice(0, 3); // Limit to 3 major cities
       
+      console.log("Found major cities:", foundMajorCities);
       setMajorCities(foundMajorCities);
     }
   }, [cities]);
   
-  // Filter cities based on search query
+  // Filter cities based on search query with improved matching
   useEffect(() => {
     if (query.trim() === '') {
       // When query is empty, show major cities
       setFilteredCities(majorCities);
     } else {
+      console.log("Filtering with query:", query);
       const lowerCaseQuery = query.toLowerCase();
-      setFilteredCities(
-        cities.filter(
-          (city) =>
-            city.name.toLowerCase().includes(lowerCaseQuery) ||
-            city.country.toLowerCase().includes(lowerCaseQuery)
-        )
-      );
+      
+      // Improve matching by making it more flexible
+      const matched = cities.filter(city => {
+        const cityNameLower = city.name.toLowerCase();
+        const countryLower = (city.country || "").toLowerCase();
+        
+        // Check if query is at the start of city name (prioritize these)
+        if (cityNameLower.startsWith(lowerCaseQuery)) {
+          return true;
+        }
+        
+        // Check if query is contained in city name
+        if (cityNameLower.includes(lowerCaseQuery)) {
+          return true;
+        }
+        
+        // Check if query is contained in country
+        if (countryLower.includes(lowerCaseQuery)) {
+          return true;
+        }
+        
+        return false;
+      });
+      
+      console.log("Matched cities:", matched);
+      setFilteredCities(matched);
     }
   }, [query, cities, majorCities]);
   
@@ -82,6 +107,7 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
   }, []);
   
   const handleSelectCity = (cityId: string) => {
+    console.log("Selected city:", cityId);
     onSelect(cityId);
     setIsOpen(false);
     setQuery('');
@@ -97,6 +123,11 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
         inputRef.current.focus();
       }
     }, 10);
+  };
+  
+  // Helper function to create city ID from name - matches the function in supabaseCityService.ts
+  const createCityId = (name: string): string => {
+    return name.toLowerCase().replace(/\s+/g, '_');
   };
   
   return (
