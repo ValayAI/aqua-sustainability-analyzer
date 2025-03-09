@@ -1,26 +1,35 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Droplet, BarChart3, Recycle, Gauge, ExternalLink } from 'lucide-react';
+import { Droplet, BarChart3, Recycle, Gauge } from 'lucide-react';
+import { useToast } from "@/components/ui/use-toast";
 import Navbar from '../components/Navbar';
 import MetricsCard from '../components/MetricsCard';
 import WaterUsageChart from '../components/WaterUsageChart';
 import CityComparison from '../components/CityComparison';
 import Footer from '../components/Footer';
-import { getCityById } from '../utils/cityData';
+import { getSupabaseCityById } from '../utils/supabaseData';
+import { City } from '../utils/supabaseData';
+import { useQuery } from '@tanstack/react-query';
 
 const Dashboard = () => {
   const [isVisible, setIsVisible] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Get the city ID from the URL params or state
   const searchParams = new URLSearchParams(location.search);
   const cityIdFromUrl = searchParams.get('cityId');
   const cityIdFromState = location.state?.selectedCityId;
-  const [selectedCityId, setSelectedCityId] = useState(cityIdFromUrl || cityIdFromState || 'nyc');
+  const [selectedCityId, setSelectedCityId] = useState(cityIdFromUrl || cityIdFromState || 'new_york');
   
-  const selectedCity = getCityById(selectedCityId);
+  // Fetch city data from Supabase using React Query
+  const { data: selectedCity, isLoading, error } = useQuery({
+    queryKey: ['city', selectedCityId],
+    queryFn: () => getSupabaseCityById(selectedCityId),
+    staleTime: 60000, // 1 minute
+  });
   
   useEffect(() => {
     // Add animation delay on initial load
@@ -43,8 +52,40 @@ const Dashboard = () => {
     }
   }, [selectedCityId, navigate]);
   
+  // Show toast notification if there's an error
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error loading city data",
+        description: "Could not fetch water data for this city. Please try again later.",
+        variant: "destructive",
+      });
+      console.error("Error fetching city data:", error);
+    }
+  }, [error, toast]);
+  
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen relative">
+        <Navbar activePage="dashboard" />
+        <div className="pt-32 pb-8 px-6 flex justify-center">
+          <div className="animate-pulse flex flex-col items-center">
+            <div className="h-8 bg-gray-200 rounded w-64 mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-96 mb-8"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8 w-full max-w-7xl">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="glass-card p-5 h-32"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Redirect to index if city is not found
   if (!selectedCity) {
-    // Redirect to index if city is not found
     navigate('/');
     return null;
   }

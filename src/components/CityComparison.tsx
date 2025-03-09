@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { City, getCityById, getCities } from '../utils/cityData';
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
+import { getSupabaseCities } from '../utils/supabaseData';
 
 interface CityComparisonProps {
   currentCityId: string;
@@ -9,149 +10,47 @@ interface CityComparisonProps {
 }
 
 const CityComparison: React.FC<CityComparisonProps> = ({ currentCityId, className }) => {
-  const [compareMetric, setCompareMetric] = useState<'waterUsage' | 'recycling' | 'sustainability'>('waterUsage');
-  
-  const currentCity = getCityById(currentCityId);
-  if (!currentCity) return null;
-  
-  const comparisonData = getCities().map(({ id, name }) => {
-    const city = getCityById(id);
-    if (!city) return null;
-    
-    let value = 0;
-    let label = '';
-    
-    if (compareMetric === 'waterUsage') {
-      value = city.waterUsage.perCapita;
-      label = 'Per Capita Water Usage (gallons)';
-    } else if (compareMetric === 'recycling') {
-      value = city.waterRecycling[city.waterRecycling.length - 1].percentage;
-      label = 'Water Recycling Rate (%)';
-    } else {
-      value = city.sustainabilityScore;
-      label = 'Sustainability Score';
-    }
-    
-    return {
-      name: city.name,
-      value,
-      id: city.id,
-    };
-  }).filter(Boolean);
-  
-  // Sort the data from high to low
-  comparisonData.sort((a, b) => (b?.value || 0) - (a?.value || 0));
-  
-  const getChartLabel = () => {
-    switch (compareMetric) {
-      case 'waterUsage':
-        return 'Per Capita Water Usage (gallons)';
-      case 'recycling':
-        return 'Water Recycling Rate (%)';
-      case 'sustainability':
-        return 'Sustainability Score';
-      default:
-        return '';
-    }
-  };
-  
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="glass p-2 border-none text-sm">
-          <p className="font-medium">{`${payload[0].payload.name}`}</p>
-          <p>
-            {`${getChartLabel()}: ${payload[0].value}`}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  // Fetch all cities from Supabase
+  const { data: cities = [], isLoading } = useQuery({
+    queryKey: ['cities'],
+    queryFn: getSupabaseCities,
+    staleTime: 60000, // 1 minute
+  });
+
+  // Filter out the current city
+  const otherCities = cities.filter(city => city.id !== currentCityId);
   
   return (
     <div className={`glass-card p-5 ${className}`}>
       <div className="mb-4">
-        <h3 className="text-lg font-medium">City Comparison</h3>
+        <h3 className="text-lg font-medium">Compare with Other Cities</h3>
         <p className="text-sm text-muted-foreground">
-          Compare {currentCity.name} with other major cities
+          Select a city to view its water usage statistics
         </p>
       </div>
       
-      <div className="flex space-x-2 mb-4">
-        <button
-          onClick={() => setCompareMetric('waterUsage')}
-          className={`px-3 py-1 text-xs rounded-full transition-colors ${
-            compareMetric === 'waterUsage'
-              ? 'bg-water-500 text-white'
-              : 'bg-muted hover:bg-muted/80 text-foreground/70'
-          }`}
-        >
-          Water Usage
-        </button>
-        <button
-          onClick={() => setCompareMetric('recycling')}
-          className={`px-3 py-1 text-xs rounded-full transition-colors ${
-            compareMetric === 'recycling'
-              ? 'bg-eco-500 text-white'
-              : 'bg-muted hover:bg-muted/80 text-foreground/70'
-          }`}
-        >
-          Recycling Rate
-        </button>
-        <button
-          onClick={() => setCompareMetric('sustainability')}
-          className={`px-3 py-1 text-xs rounded-full transition-colors ${
-            compareMetric === 'sustainability'
-              ? 'bg-primary text-white'
-              : 'bg-muted hover:bg-muted/80 text-foreground/70'
-          }`}
-        >
-          Sustainability
-        </button>
-      </div>
-      
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={comparisonData as any}
-            layout="vertical"
-            margin={{ top: 5, right: 20, left: 80, bottom: 5 }}
-          >
-            <XAxis type="number" tick={{ fontSize: 12 }} />
-            <YAxis 
-              dataKey="name" 
-              type="category" 
-              tick={{ fontSize: 12 }} 
-              width={80}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-              {comparisonData.map((entry) => (
-                <Cell 
-                  key={`cell-${entry?.id}`} 
-                  fill={entry?.id === currentCityId 
-                    ? compareMetric === 'waterUsage' 
-                      ? '#0ea5e9' 
-                      : compareMetric === 'recycling'
-                        ? '#10b981'
-                        : '#3b82f6'
-                    : '#cbd5e1'
-                  } 
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      
-      <div className="mt-4 text-sm text-muted-foreground">
-        <p>
-          {compareMetric === 'waterUsage' && 'Lower water usage per capita indicates better water efficiency.'}
-          {compareMetric === 'recycling' && 'Higher recycling rates indicate better water conservation.'}
-          {compareMetric === 'sustainability' && 'Higher sustainability scores indicate better overall water management.'}
-        </p>
-      </div>
+      {isLoading ? (
+        <div className="flex flex-col space-y-2">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-10 bg-gray-100 rounded animate-pulse"></div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {otherCities.slice(0, 6).map((city) => (
+            <Button
+              key={city.id}
+              variant="outline"
+              className="justify-start font-normal"
+              onClick={() => {
+                window.location.href = `/dashboard?cityId=${city.id}`;
+              }}
+            >
+              {city.name}, {city.country}
+            </Button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
