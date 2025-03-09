@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { getSupabaseCities } from '../utils/supabaseData';
+import { toast } from 'sonner';
 
 interface CitySearchProps {
   onSelect: (cityId: string) => void;
@@ -15,11 +16,16 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
   const [filteredCities, setFilteredCities] = useState<{ id: string; name: string; country: string }[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
   
-  // Fetch cities from Supabase
-  const { data: cities = [], isLoading } = useQuery({
+  // Fetch cities from Supabase with better error handling
+  const { data: cities = [], isLoading, isError } = useQuery({
     queryKey: ['cities'],
     queryFn: getSupabaseCities,
     staleTime: 60000, // 1 minute
+    retry: 2,
+    onError: (error) => {
+      console.error('Failed to fetch cities:', error);
+      toast.error('Could not load cities. Please try again later.');
+    }
   });
   
   // Find the currently selected city name
@@ -27,7 +33,8 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
   
   useEffect(() => {
     if (query.trim() === '') {
-      setFilteredCities(cities);
+      // When query is empty, show a limited set of cities or none
+      setFilteredCities([]);
     } else {
       const lowerCaseQuery = query.toLowerCase();
       setFilteredCities(
@@ -83,10 +90,11 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <input
                 type="text"
-                placeholder="Search cities..."
+                placeholder="Type to search cities..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="w-full pl-10 pr-8 py-2 text-sm bg-transparent border-b border-border focus:border-primary/50 focus:outline-none"
+                autoFocus
               />
               {query && (
                 <button
@@ -104,9 +112,17 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
               <div className="p-4 text-center">
                 <div className="w-6 h-6 border-2 border-t-transparent border-water-500 rounded-full animate-spin mx-auto"></div>
               </div>
+            ) : isError ? (
+              <div className="p-4 text-center text-muted-foreground text-sm">
+                Could not load cities. Please try again.
+              </div>
+            ) : query.trim() === '' ? (
+              <div className="p-4 text-center text-muted-foreground text-sm">
+                Start typing to search for cities
+              </div>
             ) : filteredCities.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground text-sm">
-                No cities found
+                No cities match your search
               </div>
             ) : (
               <div className="py-2">

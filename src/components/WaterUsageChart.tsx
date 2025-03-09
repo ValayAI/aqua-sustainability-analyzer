@@ -23,7 +23,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
       <div className="glass p-2 border-none text-sm">
         <p className="font-medium">{`Year: ${label}`}</p>
-        <p className="text-water-600">{`Usage: ${payload[0].value.toFixed(1)} million gallons/day`}</p>
+        <p className="text-water-600">
+          {`Usage: ${Number(payload[0].value).toLocaleString()} million gallons/day`}
+        </p>
       </div>
     );
   }
@@ -68,6 +70,7 @@ const WaterUsageChart: React.FC<WaterUsageChartProps> = ({ city, className }) =>
               tickLine={false}
               axisLine={{ stroke: '#e2e8f0' }}
               width={40}
+              tickFormatter={(value) => `${value < 1000 ? value : `${(value / 1000).toFixed(1)}k`}`}
             />
             <Tooltip content={<CustomTooltip />} />
             <Area 
