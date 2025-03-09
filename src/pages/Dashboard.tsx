@@ -29,6 +29,17 @@ const Dashboard = () => {
     queryKey: ['city', selectedCityId],
     queryFn: () => getSupabaseCityById(selectedCityId),
     staleTime: 60000, // 1 minute
+    // Add retry options and onError handling
+    retry: 2,
+    retryDelay: 1000,
+    onError: (err) => {
+      console.error("Error fetching city data:", err);
+      toast({
+        title: "Error loading city data",
+        description: "Could not fetch water data for this city. Please try again later.",
+        variant: "destructive",
+      });
+    }
   });
   
   useEffect(() => {
@@ -42,15 +53,19 @@ const Dashboard = () => {
     };
   }, []);
 
+  // Only update URL after component mounts to avoid state updates during render
   useEffect(() => {
-    // Update URL when city changes
     if (selectedCityId) {
-      navigate(`/dashboard?cityId=${selectedCityId}`, { 
-        replace: true,
-        state: { selectedCityId }
-      });
+      const newPath = `/dashboard?cityId=${selectedCityId}`;
+      // Only update if different from current path to avoid unnecessary history entries
+      if (location.search !== `?cityId=${selectedCityId}`) {
+        navigate(newPath, { 
+          replace: true,
+          state: { selectedCityId }
+        });
+      }
     }
-  }, [selectedCityId, navigate]);
+  }, [selectedCityId, navigate, location.search]);
   
   // Show toast notification if there's an error
   useEffect(() => {
@@ -84,10 +99,25 @@ const Dashboard = () => {
     );
   }
   
-  // Redirect to index if city is not found
+  // Return fallback UI if city is not found
   if (!selectedCity) {
-    navigate('/');
-    return null;
+    return (
+      <div className="min-h-screen relative">
+        <Navbar activePage="dashboard" />
+        <div className="pt-32 pb-8 px-6 flex justify-center">
+          <div className="glass-card p-8 max-w-lg w-full">
+            <h2 className="text-xl font-semibold mb-4">City Data Not Available</h2>
+            <p className="mb-4">We couldn't find water data for the requested city.</p>
+            <button 
+              onClick={() => navigate('/')}
+              className="px-4 py-2 bg-water-500 text-white rounded-md hover:bg-water-600 transition-colors"
+            >
+              Return to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
   
   // Get trend indicators for metrics cards
