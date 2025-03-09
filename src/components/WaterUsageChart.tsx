@@ -23,7 +23,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
       <div className="glass p-2 border-none text-sm">
         <p className="font-medium">{`Year: ${label}`}</p>
-        <p className="text-water-600">{`Usage: ${payload[0].value} million gallons/day`}</p>
+        <p className="text-water-600">{`Usage: ${payload[0].value.toFixed(1)} million gallons/day`}</p>
       </div>
     );
   }
@@ -32,6 +32,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const WaterUsageChart: React.FC<WaterUsageChartProps> = ({ city, className }) => {
+  // Ensure we have valid data to display
+  const chartData = city.waterConsumption || [];
+  
   return (
     <div className={`glass-card p-5 ${className}`}>
       <div className="mb-4">
@@ -44,7 +47,7 @@ const WaterUsageChart: React.FC<WaterUsageChartProps> = ({ city, className }) =>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
-            data={city.waterConsumption}
+            data={chartData}
             margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
           >
             <defs>

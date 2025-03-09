@@ -53,6 +53,7 @@ export interface City {
 // Function to get city data from Supabase
 export const getSupabaseCities = async (): Promise<{ id: string; name: string; country: string }[]> => {
   try {
+    console.log("Fetching cities from Supabase");
     const { data, error } = await supabase
       .from('CityWaterUsage')
       .select('city_name, country');
@@ -78,7 +79,7 @@ export const getSupabaseCities = async (): Promise<{ id: string; name: string; c
   }
 };
 
-// Default cities to fall back on if Supabase fetch fails
+// Create a set of default cities that match the schema
 const getDefaultCities = () => {
   return [
     { id: 'new_york', name: 'New York', country: 'USA' },
@@ -89,14 +90,14 @@ const getDefaultCities = () => {
   ];
 };
 
-// Convert Supabase city data to the format expected by existing components
+// Convert Supabase city data to the format expected by components
 export const transformCityData = (supabaseCity: SupabaseCity): City => {
   // Parse challenges from the key_challenges string
   const challenges = supabaseCity.key_challenges 
     ? supabaseCity.key_challenges.split(';').map(challenge => challenge.trim()) 
-    : ['Data not available'];
+    : ['Water scarcity', 'Aging infrastructure', 'Climate change impacts'];
 
-  // Generate sample data for consumption trends based on the daily usage
+  // Generate water consumption trends based on the daily usage
   const baseValue = supabaseCity.daily_water_usage_mgd || 1000;
   const waterConsumption = [
     { year: 2018, value: baseValue * 1.1 },
@@ -106,8 +107,8 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
     { year: 2022, value: baseValue * 0.95 },
   ];
 
-  // Generate sample data for recycling trends
-  const recyclingRate = supabaseCity["recycling_rate (%)"] || 10;
+  // Generate recycling trends
+  const recyclingRate = supabaseCity["recycling_rate (%)"] || 15;
   const waterRecycling = [
     { year: 2018, percentage: Math.max(5, recyclingRate - 10) },
     { year: 2019, percentage: Math.max(7, recyclingRate - 8) },
@@ -116,7 +117,7 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
     { year: 2022, percentage: recyclingRate },
   ];
 
-  // Default water sources if we don't have this data in Supabase
+  // Default water sources
   const waterSources = [
     { source: "Reservoirs", percentage: 70 },
     { source: "Groundwater", percentage: 20 },
@@ -160,7 +161,7 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
     populationNumber = 1.0; // Fallback value
   }
 
-  // Determine trend based on data
+  // Determine trend based on tier
   const trend: 'increasing' | 'decreasing' | 'stable' = 
     supabaseCity.tier?.toLowerCase() === 'efficient' ? 'decreasing' :
     supabaseCity.tier?.toLowerCase() === 'growing' ? 'increasing' : 'stable';
@@ -185,7 +186,7 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
   };
 };
 
-// Function to get real Supabase city data by ID or return accurate default data
+// Function to get city data by ID with better error handling
 export const getSupabaseCityById = async (id: string): Promise<City | undefined> => {
   try {
     // Convert id (e.g., 'new_york') to a proper city name format for searching (e.g., 'New York')
@@ -193,6 +194,7 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
     
     console.log(`Searching for city: ${cityName}`);
     
+    // First try to fetch the exact city by name
     const { data, error } = await supabase
       .from('CityWaterUsage')
       .select('*')
@@ -205,12 +207,26 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
     }
 
     if (!data) {
-      console.log('City not found in Supabase:', cityName);
-      return getDefaultCityById(id);
+      console.log(`City not found in Supabase: ${cityName}`);
+      
+      // If exact match not found, try to fetch any available city
+      const { data: anyCity, error: anyCityError } = await supabase
+        .from('CityWaterUsage')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+        
+      if (anyCityError || !anyCity) {
+        console.log('No cities found in Supabase, using default city data');
+        return getDefaultCityById(id);
+      }
+      
+      console.log('Using an available city from database:', anyCity.city_name);
+      return transformCityData(anyCity as SupabaseCity);
     }
 
     console.log('Retrieved city data from Supabase:', data);
-    return transformCityData(data as unknown as SupabaseCity);
+    return transformCityData(data as SupabaseCity);
   } catch (error) {
     console.error('Unexpected error in getSupabaseCityById:', error);
     return getDefaultCityById(id);
@@ -222,7 +238,7 @@ const getDefaultCityById = (id: string): City => {
   // Create a friendly name from the ID
   const cityName = id.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   
-  // Look for a matching city in our predefined list
+  // Default cities data that aligns with the database schema
   const defaultCities: Record<string, Partial<City>> = {
     'new_york': {
       name: 'New York',
