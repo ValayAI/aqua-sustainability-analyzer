@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X } from 'lucide-react';
-import { getCities } from '../utils/cityData';
+import { useQuery } from '@tanstack/react-query';
+import { getSupabaseCities } from '../utils/supabaseData';
 
 interface CitySearchProps {
   onSelect: (cityId: string) => void;
@@ -11,26 +12,33 @@ interface CitySearchProps {
 const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const [filteredCities, setFilteredCities] = useState(getCities());
+  const [filteredCities, setFilteredCities] = useState<{ id: string; name: string; country: string }[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
   
+  // Fetch cities from Supabase
+  const { data: cities = [], isLoading } = useQuery({
+    queryKey: ['cities'],
+    queryFn: getSupabaseCities,
+    staleTime: 60000, // 1 minute
+  });
+  
   // Find the currently selected city name
-  const selectedCity = getCities().find(city => city.id === selectedCityId);
+  const selectedCity = cities.find(city => city.id === selectedCityId);
   
   useEffect(() => {
     if (query.trim() === '') {
-      setFilteredCities(getCities());
+      setFilteredCities(cities);
     } else {
       const lowerCaseQuery = query.toLowerCase();
       setFilteredCities(
-        getCities().filter(
+        cities.filter(
           (city) =>
             city.name.toLowerCase().includes(lowerCaseQuery) ||
             city.country.toLowerCase().includes(lowerCaseQuery)
         )
       );
     }
-  }, [query]);
+  }, [query, cities]);
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -92,7 +100,11 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
           </div>
           
           <div className="max-h-60 overflow-y-auto">
-            {filteredCities.length === 0 ? (
+            {isLoading ? (
+              <div className="p-4 text-center">
+                <div className="w-6 h-6 border-2 border-t-transparent border-water-500 rounded-full animate-spin mx-auto"></div>
+              </div>
+            ) : filteredCities.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground text-sm">
                 No cities found
               </div>
