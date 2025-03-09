@@ -32,11 +32,20 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const WaterUsageChart: React.FC<WaterUsageChartProps> = ({ city, className }) => {
-  // Ensure we have valid data to display and handle error cases
-  const chartData = city.waterConsumption || [];
+  // Make sure we have valid data to display
+  if (!city) {
+    return (
+      <div className={`glass-card p-5 ${className}`}>
+        <div className="mb-4">
+          <h3 className="text-lg font-medium">Water Consumption Trends</h3>
+          <p className="text-sm text-muted-foreground">No city data available</p>
+        </div>
+      </div>
+    );
+  }
   
-  // Log chart data for debugging
-  console.log(`Rendering chart for ${city.name} with data:`, chartData);
+  // Get the chart data
+  const chartData = city.waterConsumption || [];
   
   return (
     <div className={`glass-card p-5 ${className}`}>

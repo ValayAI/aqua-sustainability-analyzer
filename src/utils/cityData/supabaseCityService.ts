@@ -8,19 +8,17 @@ import { getDefaultCities, getDefaultCityById } from "./defaultCityData";
 export const getSupabaseCities = async (): Promise<{ id: string; name: string; country: string }[]> => {
   try {
     console.log("Fetching cities from Supabase");
-    // Make sure we're explicitly selecting all fields needed
     const { data, error } = await supabase
       .from('CityWaterUsage')
       .select('city_name, country');
 
     if (error) {
       console.error('Error fetching cities from Supabase:', error);
-      return getDefaultCities(); // Return default cities when fetch fails
+      return getDefaultCities(); 
     }
 
-    // If no data found or empty array, log and return defaults
     if (!data || data.length === 0) {
-      console.error('No cities found in Supabase (received empty array), returning default data');
+      console.error('No cities found in Supabase, returning default data');
       return getDefaultCities();
     }
 
@@ -42,15 +40,14 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
     console.log(`Starting fetch for city ID: ${id}`);
     
     // Convert the ID format (underscore) to a potential city name (spaces)
-    // This handles IDs like "new_york_city" -> search for "New York City"
     const cityNameFromId = id.split('_').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
     
-    console.log(`Converted ID "${id}" to search name "${cityNameFromId}"`);
+    console.log(`Looking for city with name: "${cityNameFromId}"`);
     
-    // Direct query with exact city name first
-    const { data, error } = await supabase
+    // Exact match query
+    let { data, error } = await supabase
       .from('CityWaterUsage')
       .select('*')
       .eq('city_name', cityNameFromId)
@@ -61,13 +58,14 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
       return getDefaultCityById(id);
     }
     
+    // If exact match found
     if (data) {
-      console.log(`Found exact match for city: ${cityNameFromId}`, data);
+      console.log(`Found exact match for: ${cityNameFromId}`, data);
       return transformCityData(data as SupabaseCity);
     }
     
-    // If no exact match, try a case-insensitive search
-    console.log(`No exact match found, trying case-insensitive search for: ${cityNameFromId}`);
+    // Try case-insensitive match
+    console.log(`No exact match, trying case-insensitive search for: ${cityNameFromId}`);
     const { data: caseInsensitiveData, error: ciError } = await supabase
       .from('CityWaterUsage')
       .select('*')
@@ -84,28 +82,28 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
       return transformCityData(caseInsensitiveData as SupabaseCity);
     }
     
-    // Still no match - try just the first word of the city name
+    // Try partial match
+    console.log(`No case-insensitive match, trying partial match search`);
     const firstWord = cityNameFromId.split(' ')[0];
-    console.log(`No case-insensitive match, trying first word: ${firstWord}`);
     
-    const { data: firstWordData, error: fwError } = await supabase
+    const { data: partialMatchData, error: pmError } = await supabase
       .from('CityWaterUsage')
       .select('*')
       .ilike('city_name', `%${firstWord}%`)
       .maybeSingle();
     
-    if (fwError) {
-      console.error('Error in first word search:', fwError);
+    if (pmError) {
+      console.error('Error in partial match search:', pmError);
       return getDefaultCityById(id);
     }
     
-    if (firstWordData) {
-      console.log(`Found match using first word for: ${firstWord}`, firstWordData);
-      return transformCityData(firstWordData as SupabaseCity);
+    if (partialMatchData) {
+      console.log(`Found partial match using: ${firstWord}`, partialMatchData);
+      return transformCityData(partialMatchData as SupabaseCity);
     }
     
-    // If all attempts fail, log and return default
-    console.error(`No matching city found in Supabase for ID: ${id}, cityName: ${cityNameFromId}`);
+    // If all searches fail, use default data
+    console.log(`No matching city found in Supabase for ID: ${id}`);
     return getDefaultCityById(id);
   } catch (err) {
     console.error('Unexpected error in getSupabaseCityById:', err);

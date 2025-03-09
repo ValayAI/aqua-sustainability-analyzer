@@ -14,6 +14,7 @@ export type Database = {
           city_name: string
           country: string | null
           daily_water_usage_mgd: number | null
+          id: string
           key_challenges: string | null
           per_capita_usage_gpd: number | null
           population: string | null
@@ -25,6 +26,7 @@ export type Database = {
           city_name: string
           country?: string | null
           daily_water_usage_mgd?: number | null
+          id?: string
           key_challenges?: string | null
           per_capita_usage_gpd?: number | null
           population?: string | null
@@ -36,6 +38,7 @@ export type Database = {
           city_name?: string
           country?: string | null
           daily_water_usage_mgd?: number | null
+          id?: string
           key_challenges?: string | null
           per_capita_usage_gpd?: number | null
           population?: string | null

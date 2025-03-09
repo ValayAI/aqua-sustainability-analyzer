@@ -3,16 +3,16 @@ import { City, SupabaseCity } from "../types/cityTypes";
 
 // Convert Supabase city data to the format expected by components
 export const transformCityData = (supabaseCity: SupabaseCity): City => {
-  console.log("Raw Supabase city data:", supabaseCity);
+  console.log("Transforming Supabase city data:", supabaseCity);
   
   // Parse challenges from the key_challenges string
-  let challenges = ['Water scarcity', 'Aging infrastructure', 'Climate change impacts']; // Default
+  let challenges = ['Water scarcity'];
   if (supabaseCity.key_challenges) {
     challenges = supabaseCity.key_challenges.split(',').map(challenge => challenge.trim());
   }
 
   // Generate water consumption trends based on the daily usage
-  const baseValue = supabaseCity.daily_water_usage_mgd || 1000;
+  const baseValue = supabaseCity.daily_water_usage_mgd || 100;
   const waterConsumption = [
     { year: 2018, value: Math.round(baseValue * 1.1) },
     { year: 2019, value: Math.round(baseValue * 1.05) },
@@ -22,7 +22,7 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
   ];
 
   // Generate recycling trends - using the actual recycling rate
-  const recyclingRate = supabaseCity["recycling_rate (%)"] || 15;
+  const recyclingRate = supabaseCity["recycling_rate (%)"] || 10;
   const waterRecycling = [
     { year: 2018, percentage: Math.max(5, Math.round(recyclingRate * 0.7)) },
     { year: 2019, percentage: Math.max(7, Math.round(recyclingRate * 0.8)) },
@@ -54,15 +54,15 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
     }
   ];
 
-  // Parse population string to number - make it more readable
-  let populationNumber = 0;
+  // Parse population string to number (in millions)
+  let populationNumber = 1.0; // Default fallback
   try {
-    // Check if population contains "million" or "M" and handle accordingly
     const populationStr = supabaseCity.population || '';
+    
     if (populationStr.toLowerCase().includes('million') || populationStr.includes('M')) {
       // Extract the number part before "million" or "M"
       const match = populationStr.match(/(\d+(\.\d+)?)/);
-      populationNumber = match ? parseFloat(match[0]) : 0;
+      populationNumber = match ? parseFloat(match[0]) : 1.0;
     } else {
       // Try to parse as a number with commas and convert to millions
       const cleanedNumber = populationStr.replace(/,/g, '');
@@ -72,23 +72,28 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
     // Round to 2 decimal places for readability
     populationNumber = Math.round(populationNumber * 100) / 100;
     
-    // For safety, default to 1.0 if parsing failed
+    // Fallback if parsing failed
     if (isNaN(populationNumber) || populationNumber === 0) {
       populationNumber = 1.0;
     }
   } catch (error) {
     console.error('Error parsing population:', error);
-    populationNumber = 1.0; // Fallback value
+    populationNumber = 1.0;
   }
 
   // Determine trend based on tier or other indicators
   let trend: 'increasing' | 'decreasing' | 'stable' = 'stable';
   if (supabaseCity.tier) {
-    trend = supabaseCity.tier.toLowerCase().includes('1') ? 'decreasing' :
-           supabaseCity.tier.toLowerCase().includes('3') ? 'increasing' : 'stable';
+    if (supabaseCity.tier.toLowerCase().includes('1')) {
+      trend = 'decreasing';
+    } else if (supabaseCity.tier.toLowerCase().includes('3')) {
+      trend = 'increasing';
+    } else {
+      trend = 'stable';
+    }
   }
 
-  // Build the transformed city object with actual data from Supabase
+  // Build the transformed city object
   const transformedCity: City = {
     id: supabaseCity.city_name.toLowerCase().replace(/\s+/g, '_'),
     name: supabaseCity.city_name,
@@ -96,7 +101,7 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
     population: populationNumber,
     waterUsage: {
       perCapita: supabaseCity.per_capita_usage_gpd || 100,
-      totalDaily: supabaseCity.daily_water_usage_mgd || 1000,
+      totalDaily: supabaseCity.daily_water_usage_mgd || 100,
       unit: "gallons",
       trend: trend,
     },
