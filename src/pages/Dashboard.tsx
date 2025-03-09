@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Droplet, BarChart3, Recycle, Gauge } from 'lucide-react';
@@ -26,7 +27,12 @@ const Dashboard = () => {
   // Fetch city data from Supabase using React Query
   const { data: selectedCity, isLoading, error } = useQuery({
     queryKey: ['city', selectedCityId],
-    queryFn: () => getSupabaseCityById(selectedCityId),
+    queryFn: async () => {
+      console.log(`Fetching data for city ID: ${selectedCityId}`);
+      const cityData = await getSupabaseCityById(selectedCityId);
+      console.log('Fetched city data:', cityData);
+      return cityData;
+    },
     staleTime: 60000, // 1 minute
     retry: 2,
     retryDelay: 1000

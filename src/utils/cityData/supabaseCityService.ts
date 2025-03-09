@@ -22,6 +22,7 @@ export const getSupabaseCities = async (): Promise<{ id: string; name: string; c
       return getDefaultCities();
     }
 
+    console.log('Successfully fetched cities from Supabase:', data);
     return data.map((city) => ({
       id: city.city_name.toLowerCase().replace(/\s+/g, '_'),
       name: city.city_name,
@@ -56,20 +57,21 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
     if (!data) {
       console.log(`City not found in Supabase: ${cityName}`);
       
-      // If exact match not found, try to fetch any available city
-      const { data: anyCity, error: anyCityError } = await supabase
+      // Try searching with a more flexible approach
+      const { data: fuzzyData, error: fuzzyError } = await supabase
         .from('CityWaterUsage')
         .select('*')
+        .ilike('city_name', `%${cityName.split(' ')[0]}%`) // Search using just the first word
         .limit(1)
         .maybeSingle();
         
-      if (anyCityError || !anyCity) {
-        console.log('No cities found in Supabase, using default city data');
+      if (fuzzyError || !fuzzyData) {
+        console.log('No matching cities found in Supabase, using default city data');
         return getDefaultCityById(id);
       }
       
-      console.log('Using an available city from database:', anyCity.city_name);
-      return transformCityData(anyCity as SupabaseCity);
+      console.log('Found similar city in database:', fuzzyData.city_name);
+      return transformCityData(fuzzyData as SupabaseCity);
     }
 
     console.log('Retrieved city data from Supabase:', data);
