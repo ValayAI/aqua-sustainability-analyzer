@@ -17,7 +17,7 @@ export interface SupabaseCity {
   population: string;
   per_capita_usage_gpd: number;
   daily_water_usage_mgd: number;
-  recycling_rate: number;
+  "recycling_rate (%)": number; // Updated to match the actual column name in Supabase
   sustainability_score: number;
   key_challenges: string;
   tier: string;
@@ -86,7 +86,8 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
   ];
 
   // Generate sample data for recycling trends
-  const recyclingRate = supabaseCity.recycling_rate || 10;
+  // Use the correct property name with the brackets notation to access the recycling rate
+  const recyclingRate = supabaseCity["recycling_rate (%)"] || 10;
   const waterRecycling = [
     { year: 2018, percentage: Math.max(5, recyclingRate - 10) },
     { year: 2019, percentage: Math.max(7, recyclingRate - 8) },
@@ -174,5 +175,5 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
     return undefined;
   }
 
-  return transformCityData(data as SupabaseCity);
-};
+  return transformCityData(data as unknown as SupabaseCity);
+}
