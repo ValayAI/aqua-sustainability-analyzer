@@ -14,7 +14,9 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [filteredCities, setFilteredCities] = useState<{ id: string; name: string; country: string }[]>([]);
+  const [majorCities, setMajorCities] = useState<{ id: string; name: string; country: string }[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   
   // Fetch cities from Supabase with better error handling
   const { data: cities = [], isLoading, isError } = useQuery({
@@ -35,10 +37,24 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
   // Find the currently selected city name
   const selectedCity = cities.find(city => city.id === selectedCityId);
   
+  // Set major cities when cities data is loaded
+  useEffect(() => {
+    if (cities.length > 0) {
+      // Define major cities to show by default (these are large, well-known cities from our dataset)
+      const majorCityNames = ['New York', 'Tokyo', 'London', 'Shanghai', 'Los Angeles', 'Delhi', 'Beijing'];
+      const foundMajorCities = cities
+        .filter(city => majorCityNames.includes(city.name))
+        .slice(0, 3); // Limit to 3 major cities
+      
+      setMajorCities(foundMajorCities);
+    }
+  }, [cities]);
+  
+  // Filter cities based on search query
   useEffect(() => {
     if (query.trim() === '') {
-      // When query is empty, show a limited set of cities or none
-      setFilteredCities([]);
+      // When query is empty, show major cities
+      setFilteredCities(majorCities);
     } else {
       const lowerCaseQuery = query.toLowerCase();
       setFilteredCities(
@@ -49,8 +65,9 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
         )
       );
     }
-  }, [query, cities]);
+  }, [query, cities, majorCities]);
   
+  // Handle clicks outside the component
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -70,11 +87,23 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
     setQuery('');
   };
   
+  const handleOpenDropdown = () => {
+    setIsOpen(true);
+    // Reset query when opening to show major cities
+    setQuery('');
+    // Focus the input field after opening
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 10);
+  };
+  
   return (
     <div className="w-full max-w-md mx-auto relative" ref={searchRef}>
       <div className="relative">
         <button
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={handleOpenDropdown}
           className="w-full flex items-center justify-between p-4 glass-card focus-ring"
         >
           <div className="flex items-center">
@@ -93,6 +122,7 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <input
+                ref={inputRef}
                 type="text"
                 placeholder="Type to search cities..."
                 value={query}
@@ -120,16 +150,23 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
               <div className="p-4 text-center text-muted-foreground text-sm">
                 Could not load cities. Please try again.
               </div>
-            ) : query.trim() === '' ? (
-              <div className="p-4 text-center text-muted-foreground text-sm">
-                Start typing to search for cities
-              </div>
             ) : filteredCities.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground text-sm">
-                No cities match your search
-              </div>
+              query.trim() === '' ? (
+                <div className="p-4 text-center text-muted-foreground text-sm">
+                  No major cities found. Try typing to search.
+                </div>
+              ) : (
+                <div className="p-4 text-center text-muted-foreground text-sm">
+                  No cities match your search
+                </div>
+              )
             ) : (
               <div className="py-2">
+                {query.trim() === '' && (
+                  <div className="px-4 py-2 text-xs text-muted-foreground">
+                    Major Cities
+                  </div>
+                )}
                 {filteredCities.map((city) => (
                   <button
                     key={city.id}
