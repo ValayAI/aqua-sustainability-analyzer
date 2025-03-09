@@ -3,29 +3,31 @@ import { City, SupabaseCity } from "../types/cityTypes";
 
 // Convert Supabase city data to the format expected by components
 export const transformCityData = (supabaseCity: SupabaseCity): City => {
+  console.log("Transforming Supabase city data:", supabaseCity);
+  
   // Parse challenges from the key_challenges string
   const challenges = supabaseCity.key_challenges 
-    ? supabaseCity.key_challenges.split(';').map(challenge => challenge.trim()) 
+    ? supabaseCity.key_challenges.split(',').map(challenge => challenge.trim()) 
     : ['Water scarcity', 'Aging infrastructure', 'Climate change impacts'];
 
   // Generate water consumption trends based on the daily usage
   const baseValue = supabaseCity.daily_water_usage_mgd || 1000;
   const waterConsumption = [
-    { year: 2018, value: baseValue * 1.1 },
-    { year: 2019, value: baseValue * 1.05 },
-    { year: 2020, value: baseValue },
-    { year: 2021, value: baseValue * 0.98 },
-    { year: 2022, value: baseValue * 0.95 },
+    { year: 2018, value: Math.round(baseValue * 1.1) },
+    { year: 2019, value: Math.round(baseValue * 1.05) },
+    { year: 2020, value: Math.round(baseValue) },
+    { year: 2021, value: Math.round(baseValue * 0.98) },
+    { year: 2022, value: Math.round(baseValue * 0.95) },
   ];
 
-  // Generate recycling trends
+  // Generate recycling trends - using the actual recycling rate
   const recyclingRate = supabaseCity["recycling_rate (%)"] || 15;
   const waterRecycling = [
-    { year: 2018, percentage: Math.max(5, recyclingRate - 10) },
-    { year: 2019, percentage: Math.max(7, recyclingRate - 8) },
-    { year: 2020, percentage: Math.max(9, recyclingRate - 5) },
-    { year: 2021, percentage: Math.max(11, recyclingRate - 3) },
-    { year: 2022, percentage: recyclingRate },
+    { year: 2018, percentage: Math.max(5, Math.round(recyclingRate * 0.7)) },
+    { year: 2019, percentage: Math.max(7, Math.round(recyclingRate * 0.8)) },
+    { year: 2020, percentage: Math.max(9, Math.round(recyclingRate * 0.9)) },
+    { year: 2021, percentage: Math.max(11, Math.round(recyclingRate * 0.95)) },
+    { year: 2022, percentage: Math.round(recyclingRate) },
   ];
 
   // Default water sources
@@ -61,23 +63,32 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
       const match = populationStr.match(/(\d+(\.\d+)?)/);
       populationNumber = match ? parseFloat(match[0]) : 0;
     } else {
-      // Convert full population number to millions for display
-      populationNumber = parseFloat(populationStr.replace(/[^0-9.]/g, '')) / 1000000;
+      // Try to parse as a number with commas and convert to millions
+      const cleanedNumber = populationStr.replace(/,/g, '');
+      populationNumber = parseFloat(cleanedNumber) / 1000000;
     }
     
     // Round to 2 decimal places for readability
     populationNumber = Math.round(populationNumber * 100) / 100;
+    
+    // For safety, default to 1.0 if parsing failed
+    if (isNaN(populationNumber) || populationNumber === 0) {
+      populationNumber = 1.0;
+    }
   } catch (error) {
     console.error('Error parsing population:', error);
     populationNumber = 1.0; // Fallback value
   }
 
-  // Determine trend based on tier
-  const trend: 'increasing' | 'decreasing' | 'stable' = 
-    supabaseCity.tier?.toLowerCase() === 'efficient' ? 'decreasing' :
-    supabaseCity.tier?.toLowerCase() === 'growing' ? 'increasing' : 'stable';
+  // Determine trend based on tier or other indicators
+  let trend: 'increasing' | 'decreasing' | 'stable' = 'stable';
+  if (supabaseCity.tier) {
+    trend = supabaseCity.tier.toLowerCase().includes('1') ? 'decreasing' :
+           supabaseCity.tier.toLowerCase().includes('3') ? 'increasing' : 'stable';
+  }
 
-  return {
+  // Build the transformed city object with actual data from Supabase
+  const transformedCity: City = {
     id: supabaseCity.city_name.toLowerCase().replace(/\s+/g, '_'),
     name: supabaseCity.city_name,
     country: supabaseCity.country || 'Unknown',
@@ -95,4 +106,7 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
     challenges: challenges,
     initiatives: initiatives,
   };
+
+  console.log("Transformed city data:", transformedCity);
+  return transformedCity;
 };

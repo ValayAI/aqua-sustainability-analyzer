@@ -11,7 +11,7 @@ import {
   AreaChart,
   Area
 } from 'recharts';
-import { City } from '../utils/supabaseData';
+import { City } from '../utils/types/cityTypes';
 
 interface WaterUsageChartProps {
   city: City;

@@ -37,45 +37,49 @@ export const getSupabaseCities = async (): Promise<{ id: string; name: string; c
 // Function to get city data by ID with better error handling
 export const getSupabaseCityById = async (id: string): Promise<City | undefined> => {
   try {
-    // Convert id (e.g., 'new_york') to a proper city name format for searching (e.g., 'New York')
-    const cityName = id.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    // Format city name for search - try different formats
+    let cityName = id.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     
-    console.log(`Searching for city: ${cityName}`);
-    
-    // First try to fetch the exact city by name
-    const { data, error } = await supabase
-      .from('CityWaterUsage')
-      .select('*')
-      .ilike('city_name', cityName)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error fetching city from Supabase:', error);
-      return getDefaultCityById(id);
+    // Special case for New York - try both "New York" and "New York City"
+    const possibleNames = [cityName];
+    if (cityName === "New York") {
+      possibleNames.push("New York City");
+    } else if (cityName === "New York City") {
+      possibleNames.push("New York");
     }
-
-    if (!data) {
-      console.log(`City not found in Supabase: ${cityName}`);
-      
-      // Try searching with a more flexible approach
-      const { data: fuzzyData, error: fuzzyError } = await supabase
+    
+    console.log(`Searching for city with possible names:`, possibleNames);
+    
+    // Try all possible names
+    for (const name of possibleNames) {
+      const { data, error } = await supabase
         .from('CityWaterUsage')
         .select('*')
-        .ilike('city_name', `%${cityName.split(' ')[0]}%`) // Search using just the first word
-        .limit(1)
+        .ilike('city_name', name)
         .maybeSingle();
-        
-      if (fuzzyError || !fuzzyData) {
-        console.log('No matching cities found in Supabase, using default city data');
-        return getDefaultCityById(id);
-      }
       
-      console.log('Found similar city in database:', fuzzyData.city_name);
-      return transformCityData(fuzzyData as SupabaseCity);
+      if (!error && data) {
+        console.log(`Found city data for "${name}":`, data);
+        return transformCityData(data as SupabaseCity);
+      }
     }
-
-    console.log('Retrieved city data from Supabase:', data);
-    return transformCityData(data as SupabaseCity);
+    
+    // If exact match not found, try a more flexible approach
+    console.log(`No exact match found, trying fuzzy search...`);
+    const { data: fuzzyData, error: fuzzyError } = await supabase
+      .from('CityWaterUsage')
+      .select('*')
+      .ilike('city_name', `%${cityName.split(' ')[0]}%`) // Search using just the first word
+      .limit(1)
+      .maybeSingle();
+      
+    if (fuzzyError || !fuzzyData) {
+      console.log('No matching cities found in Supabase, using default city data');
+      return getDefaultCityById(id);
+    }
+    
+    console.log('Found similar city in database:', fuzzyData.city_name);
+    return transformCityData(fuzzyData as SupabaseCity);
   } catch (error) {
     console.error('Unexpected error in getSupabaseCityById:', error);
     return getDefaultCityById(id);
