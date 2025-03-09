@@ -4,7 +4,7 @@ import { Droplet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface NavbarProps {
-  activePage?: 'home' | 'dashboard' | 'compare' | 'insights' | 'about';
+  activePage?: 'home' | 'dashboard' | 'compare' | 'about';
 }
 
 const Navbar: React.FC<NavbarProps> = ({ activePage = 'home' }) => {
@@ -38,7 +38,7 @@ const Navbar: React.FC<NavbarProps> = ({ activePage = 'home' }) => {
             Dashboard
           </Link>
           <Link 
-            to="#" 
+            to="/compare" 
             className={`text-sm font-medium ${
               activePage === 'compare' 
                 ? 'text-water-600' 
@@ -46,16 +46,6 @@ const Navbar: React.FC<NavbarProps> = ({ activePage = 'home' }) => {
             } transition-colors focus-ring`}
           >
             Compare Cities
-          </Link>
-          <Link 
-            to="#" 
-            className={`text-sm font-medium ${
-              activePage === 'insights' 
-                ? 'text-water-600' 
-                : 'text-foreground/80 hover:text-foreground'
-            } transition-colors focus-ring`}
-          >
-            Insights
           </Link>
           <Link 
             to="#" 

@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import Navbar from '../components/Navbar';
 import MetricsCard from '../components/MetricsCard';
 import WaterUsageChart from '../components/WaterUsageChart';
-import CityComparison from '../components/CityComparison';
 import Footer from '../components/Footer';
 import { getSupabaseCityById } from '../utils/supabaseData';
 import { City } from '../utils/supabaseData';
@@ -198,20 +197,15 @@ const Dashboard = () => {
           </div>
           
           {/* Charts and Visualizations */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="mb-8">
             <WaterUsageChart 
               city={selectedCity} 
               className={`transition-all duration-500 delay-200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
             />
-            
-            <CityComparison 
-              currentCityId={selectedCityId} 
-              className={`transition-all duration-500 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-            />
           </div>
           
           {/* Water Sources */}
-          <div className={`glass-card p-5 mb-8 transition-all duration-500 delay-400 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+          <div className={`glass-card p-5 mb-8 transition-all duration-500 delay-400 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-4'}`}>
             <div className="mb-4">
               <h3 className="text-lg font-medium">Water Sources</h3>
               <p className="text-sm text-muted-foreground">
