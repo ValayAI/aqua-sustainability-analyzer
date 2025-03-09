@@ -8,6 +8,8 @@ import { getDefaultCities, getDefaultCityById } from "./defaultCityData";
 export const getSupabaseCities = async (): Promise<{ id: string; name: string; country: string }[]> => {
   try {
     console.log("Fetching cities from Supabase");
+    
+    // First, try to get data from Supabase
     const { data, error } = await supabase
       .from('CityWaterUsage')
       .select('city_name, country');
@@ -18,16 +20,36 @@ export const getSupabaseCities = async (): Promise<{ id: string; name: string; c
     }
 
     if (!data || data.length === 0) {
-      console.error('No cities found in Supabase, returning default data');
-      return getDefaultCities();
+      console.log('No cities found in Supabase, adding default data');
+      
+      // Merge default cities with any data we got from Supabase
+      const defaultCities = getDefaultCities();
+      return defaultCities;
     }
 
     console.log('Successfully fetched cities from Supabase:', data);
-    return data.map((city) => ({
+    
+    // Transform the data to the required format
+    const cities = data.map((city) => ({
       id: city.city_name.toLowerCase().replace(/\s+/g, '_'),
       name: city.city_name,
       country: city.country || 'Unknown',
     }));
+    
+    // Add default cities to ensure we always have some data
+    const defaultCities = getDefaultCities();
+    
+    // Combine and deduplicate
+    const combinedCities = [...cities];
+    
+    // Add default cities that aren't already in the list
+    defaultCities.forEach(defaultCity => {
+      if (!combinedCities.some(city => city.id === defaultCity.id)) {
+        combinedCities.push(defaultCity);
+      }
+    });
+    
+    return combinedCities;
   } catch (err) {
     console.error('Unexpected error in getSupabaseCities:', err);
     return getDefaultCities();
@@ -46,7 +68,7 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
     
     console.log(`Looking for city with name: "${cityNameFromId}"`);
     
-    // Exact match query
+    // Exact match query with case insensitivity
     const { data, error } = await supabase
       .from('CityWaterUsage')
       .select('*')
@@ -66,12 +88,15 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
     
     // Try partial match if exact match fails
     console.log(`No exact match found, trying partial match for: ${cityNameFromId}`);
-    const firstWord = cityNameFromId.split(' ')[0];
     
+    // Get first word of the city name for partial matching
+    const partialQuery = cityNameFromId.split(' ')[0];
+    
+    // Partial match with first word
     const { data: partialMatchData, error: pmError } = await supabase
       .from('CityWaterUsage')
       .select('*')
-      .ilike('city_name', `%${firstWord}%`)
+      .ilike('city_name', `%${partialQuery}%`)
       .maybeSingle();
     
     if (pmError) {
@@ -80,7 +105,7 @@ export const getSupabaseCityById = async (id: string): Promise<City | undefined>
     }
     
     if (partialMatchData) {
-      console.log(`Found partial match using: ${firstWord}`, partialMatchData);
+      console.log(`Found partial match using: ${partialQuery}`, partialMatchData);
       return transformCityData(partialMatchData as SupabaseCity);
     }
     

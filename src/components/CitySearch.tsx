@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { getSupabaseCities } from '../utils/supabaseData';
+import { getSupabaseCities } from '../utils/cityData/supabaseCityService';
 import { toast } from 'sonner';
 
 interface CitySearchProps {
@@ -39,33 +39,29 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
   // Find the currently selected city name
   const selectedCity = cities.find(city => city.id === selectedCityId);
   
-  // Filter cities based on search query
+  // Filter cities based on search query with improved matching
   useEffect(() => {
     if (query.trim() === '') {
       // When query is empty, show all cities (limited to prevent overwhelming the UI)
       setFilteredCities(cities.slice(0, 10));
-    } else {
-      console.log("Filtering with query:", query);
-      const lowerCaseQuery = query.toLowerCase();
-      
-      // Simple matching algorithm focusing on starts-with and contains
-      const matches = cities.filter(city => {
-        const cityNameLower = city.name.toLowerCase();
-        const countryLower = city.country.toLowerCase();
-        
-        // Prioritize cities that start with the query
-        const startsWithMatch = cityNameLower.startsWith(lowerCaseQuery);
-        
-        // Also include cities that contain the query anywhere in the name
-        const containsMatch = cityNameLower.includes(lowerCaseQuery) || 
-                             countryLower.includes(lowerCaseQuery);
-        
-        return startsWithMatch || containsMatch;
-      });
-      
-      console.log("Matched cities:", matches);
-      setFilteredCities(matches.slice(0, 10)); // Limit to 10 results
+      return;
     }
+    
+    console.log("Filtering with query:", query);
+    const lowerCaseQuery = query.toLowerCase();
+    
+    // More permissive matching algorithm
+    const matches = cities.filter(city => {
+      const cityNameLower = city.name.toLowerCase();
+      const countryLower = city.country.toLowerCase();
+      
+      // Match if any part of the city name or country includes the query
+      return cityNameLower.includes(lowerCaseQuery) || 
+             countryLower.includes(lowerCaseQuery);
+    });
+    
+    console.log("Matched cities:", matches);
+    setFilteredCities(matches.slice(0, 10)); // Limit to 10 results
   }, [query, cities]);
   
   // Handle clicks outside the component

@@ -4,7 +4,7 @@ import { City } from "../types/cityTypes";
 // Generate a set of default cities that match the schema
 export const getDefaultCities = () => {
   return [
-    { id: 'new_york', name: 'New York', country: 'USA' },
+    { id: 'new_york_city', name: 'New York City', country: 'USA' },
     { id: 'london', name: 'London', country: 'UK' },
     { id: 'tokyo', name: 'Tokyo', country: 'Japan' },
     { id: 'paris', name: 'Paris', country: 'France' },
@@ -19,8 +19,8 @@ export const getDefaultCityById = (id: string): City => {
   
   // Default cities data that aligns with the database schema
   const defaultCities: Record<string, Partial<City>> = {
-    'new_york': {
-      name: 'New York',
+    'new_york_city': {
+      name: 'New York City',
       country: 'USA',
       population: 8.4,
       waterUsage: {
