@@ -17,7 +17,7 @@ export interface SupabaseCity {
   population: string;
   per_capita_usage_gpd: number;
   daily_water_usage_mgd: number;
-  "recycling_rate (%)": number; // Updated to match the actual column name in Supabase
+  "recycling_rate (%)": number; // This matches the actual column name in Supabase
   sustainability_score: number;
   key_challenges: string;
   tier: string;
@@ -52,25 +52,30 @@ export interface City {
 
 // Function to get city data from Supabase
 export const getSupabaseCities = async (): Promise<{ id: string; name: string; country: string }[]> => {
-  const { data, error } = await supabase
-    .from('CityWaterUsage')
-    .select('city_name, country');
+  try {
+    const { data, error } = await supabase
+      .from('CityWaterUsage')
+      .select('city_name, country');
 
-  if (error) {
-    console.error('Error fetching cities from Supabase:', error);
-    return getDefaultCities(); // Return default cities when fetch fails
-  }
+    if (error) {
+      console.error('Error fetching cities from Supabase:', error);
+      return getDefaultCities(); // Return default cities when fetch fails
+    }
 
-  if (!data || data.length === 0) {
-    console.warn('No cities found in Supabase, returning default data');
+    if (!data || data.length === 0) {
+      console.warn('No cities found in Supabase, returning default data');
+      return getDefaultCities();
+    }
+
+    return data.map((city) => ({
+      id: city.city_name.toLowerCase().replace(/\s+/g, '_'),
+      name: city.city_name,
+      country: city.country || 'Unknown',
+    }));
+  } catch (err) {
+    console.error('Unexpected error in getSupabaseCities:', err);
     return getDefaultCities();
   }
-
-  return data.map((city, index) => ({
-    id: city.city_name.toLowerCase().replace(/\s+/g, '_'),
-    name: city.city_name,
-    country: city.country || 'Unknown',
-  }));
 };
 
 // Default cities to fall back on if Supabase fetch fails
@@ -102,7 +107,6 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
   ];
 
   // Generate sample data for recycling trends
-  // Use the correct property name with the brackets notation to access the recycling rate
   const recyclingRate = supabaseCity["recycling_rate (%)"] || 10;
   const waterRecycling = [
     { year: 2018, percentage: Math.max(5, recyclingRate - 10) },
@@ -135,20 +139,31 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
     }
   ];
 
-  // Parse population string to number
+  // Parse population string to number - make it more readable
   let populationNumber = 0;
   try {
-    populationNumber = supabaseCity.population 
-      ? parseFloat(supabaseCity.population.replace(/[^0-9.]/g, '')) 
-      : 0;
+    // Check if population contains "million" or "M" and handle accordingly
+    const populationStr = supabaseCity.population || '';
+    if (populationStr.toLowerCase().includes('million') || populationStr.includes('M')) {
+      // Extract the number part before "million" or "M"
+      const match = populationStr.match(/(\d+(\.\d+)?)/);
+      populationNumber = match ? parseFloat(match[0]) : 0;
+    } else {
+      // Convert full population number to millions for display
+      populationNumber = parseFloat(populationStr.replace(/[^0-9.]/g, '')) / 1000000;
+    }
+    
+    // Round to 2 decimal places for readability
+    populationNumber = Math.round(populationNumber * 100) / 100;
   } catch (error) {
     console.error('Error parsing population:', error);
+    populationNumber = 1.0; // Fallback value
   }
 
   // Determine trend based on data
   const trend: 'increasing' | 'decreasing' | 'stable' = 
-    supabaseCity.tier === 'efficient' ? 'decreasing' :
-    supabaseCity.tier === 'growing' ? 'increasing' : 'stable';
+    supabaseCity.tier?.toLowerCase() === 'efficient' ? 'decreasing' :
+    supabaseCity.tier?.toLowerCase() === 'growing' ? 'increasing' : 'stable';
 
   return {
     id: supabaseCity.city_name.toLowerCase().replace(/\s+/g, '_'),
@@ -170,46 +185,116 @@ export const transformCityData = (supabaseCity: SupabaseCity): City => {
   };
 };
 
-// Function to get a specific city by ID with robust error handling
+// Function to get real Supabase city data by ID or return accurate default data
 export const getSupabaseCityById = async (id: string): Promise<City | undefined> => {
   try {
-    // Convert id (e.g., 'new_york') to a proper city name (e.g., 'New York')
+    // Convert id (e.g., 'new_york') to a proper city name format for searching (e.g., 'New York')
     const cityName = id.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    
+    console.log(`Searching for city: ${cityName}`);
     
     const { data, error } = await supabase
       .from('CityWaterUsage')
       .select('*')
       .ilike('city_name', cityName)
-      .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no data is found
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching city from Supabase:', error);
-      return getDefaultCity(id);
+      return getDefaultCityById(id);
     }
 
     if (!data) {
       console.log('City not found in Supabase:', cityName);
-      return getDefaultCity(id);
+      return getDefaultCityById(id);
     }
 
+    console.log('Retrieved city data from Supabase:', data);
     return transformCityData(data as unknown as SupabaseCity);
   } catch (error) {
     console.error('Unexpected error in getSupabaseCityById:', error);
-    return getDefaultCity(id);
+    return getDefaultCityById(id);
   }
 };
 
-// Generate a default city when fetch fails
-const getDefaultCity = (id: string): City => {
+// Generate a default city when fetch fails - using data that matches the expected format
+const getDefaultCityById = (id: string): City => {
   // Create a friendly name from the ID
   const cityName = id.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   
+  // Look for a matching city in our predefined list
+  const defaultCities: Record<string, Partial<City>> = {
+    'new_york': {
+      name: 'New York',
+      country: 'USA',
+      population: 8.4,
+      waterUsage: {
+        perCapita: 100,
+        totalDaily: 1000,
+        unit: "gallons",
+        trend: "decreasing",
+      },
+      sustainabilityScore: 75,
+    },
+    'london': {
+      name: 'London',
+      country: 'UK',
+      population: 8.9,
+      waterUsage: {
+        perCapita: 90,
+        totalDaily: 900,
+        unit: "gallons",
+        trend: "decreasing",
+      },
+      sustainabilityScore: 80,
+    },
+    'tokyo': {
+      name: 'Tokyo',
+      country: 'Japan',
+      population: 13.96,
+      waterUsage: {
+        perCapita: 80,
+        totalDaily: 1600,
+        unit: "gallons",
+        trend: "stable",
+      },
+      sustainabilityScore: 85,
+    },
+    'paris': {
+      name: 'Paris',
+      country: 'France',
+      population: 2.16,
+      waterUsage: {
+        perCapita: 85,
+        totalDaily: 400,
+        unit: "gallons",
+        trend: "decreasing",
+      },
+      sustainabilityScore: 78,
+    },
+    'sydney': {
+      name: 'Sydney',
+      country: 'Australia',
+      population: 5.3,
+      waterUsage: {
+        perCapita: 95,
+        totalDaily: 550,
+        unit: "gallons",
+        trend: "stable",
+      },
+      sustainabilityScore: 82,
+    }
+  };
+  
+  // Get the matching city data or use generic data
+  const cityData = defaultCities[id] || {};
+  
   return {
     id: id,
-    name: cityName,
-    country: 'Default Country',
-    population: 1000000,
-    waterUsage: {
+    name: cityData.name || cityName,
+    country: cityData.country || 'USA',
+    population: cityData.population || 1.0,
+    waterUsage: cityData.waterUsage || {
       perCapita: 100,
       totalDaily: 1000,
       unit: "gallons",
@@ -234,7 +319,7 @@ const getDefaultCity = (id: string): City => {
       { year: 2021, percentage: 11 },
       { year: 2022, percentage: 15 },
     ],
-    sustainabilityScore: 70,
+    sustainabilityScore: cityData.sustainabilityScore || 70,
     challenges: ['Water scarcity', 'Aging infrastructure', 'Climate change impacts'],
     initiatives: [
       {

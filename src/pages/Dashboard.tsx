@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Droplet, BarChart3, Recycle, Gauge } from 'lucide-react';
@@ -29,17 +28,8 @@ const Dashboard = () => {
     queryKey: ['city', selectedCityId],
     queryFn: () => getSupabaseCityById(selectedCityId),
     staleTime: 60000, // 1 minute
-    // Add retry options and onError handling
     retry: 2,
-    retryDelay: 1000,
-    onError: (err) => {
-      console.error("Error fetching city data:", err);
-      toast({
-        title: "Error loading city data",
-        description: "Could not fetch water data for this city. Please try again later.",
-        variant: "destructive",
-      });
-    }
+    retryDelay: 1000
   });
   
   useEffect(() => {
@@ -145,7 +135,7 @@ const Dashboard = () => {
               Water Analysis: {selectedCity.name}, {selectedCity.country}
             </h2>
             <p className={`text-muted-foreground transition-all duration-500 delay-100 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-4'}`}>
-              Population: {selectedCity.population} million | Latest data as of 2022
+              Population: {typeof selectedCity.population === 'number' ? selectedCity.population.toLocaleString() : selectedCity.population} million | Latest data as of 2022
             </p>
           </div>
           

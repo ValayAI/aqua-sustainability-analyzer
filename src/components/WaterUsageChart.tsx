@@ -11,7 +11,7 @@ import {
   AreaChart,
   Area
 } from 'recharts';
-import { City } from '../utils/cityData';
+import { City } from '../utils/supabaseData';
 
 interface WaterUsageChartProps {
   city: City;
@@ -55,7 +55,7 @@ const WaterUsageChart: React.FC<WaterUsageChartProps> = ({ city, className }) =>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
             <XAxis 
-              dataKey="year"
+              dataKey="year" 
               tick={{ fontSize: 12 }}
               tickLine={false}
               axisLine={{ stroke: '#e2e8f0' }}
