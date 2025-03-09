@@ -19,13 +19,15 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
   // Fetch cities from Supabase with better error handling
   const { data: cities = [], isLoading, isError } = useQuery({
     queryKey: ['cities'],
-    queryFn: getSupabaseCities,
+    queryFn: () => {
+      return getSupabaseCities().catch(error => {
+        console.error('Failed to fetch cities:', error);
+        toast.error('Could not load cities. Please try again later.');
+        throw error;
+      });
+    },
     staleTime: 60000, // 1 minute
-    retry: 2,
-    onError: (error) => {
-      console.error('Failed to fetch cities:', error);
-      toast.error('Could not load cities. Please try again later.');
-    }
+    retry: 2
   });
   
   // Find the currently selected city name
