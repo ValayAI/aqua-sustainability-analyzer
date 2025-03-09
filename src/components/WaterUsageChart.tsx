@@ -1,8 +1,6 @@
 
 import React from 'react';
 import { 
-  LineChart, 
-  Line, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -34,8 +32,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const WaterUsageChart: React.FC<WaterUsageChartProps> = ({ city, className }) => {
-  // Ensure we have valid data to display
+  // Ensure we have valid data to display and handle error cases
   const chartData = city.waterConsumption || [];
+  
+  // Log chart data for debugging
+  console.log(`Rendering chart for ${city.name} with data:`, chartData);
   
   return (
     <div className={`glass-card p-5 ${className}`}>
@@ -46,45 +47,51 @@ const WaterUsageChart: React.FC<WaterUsageChartProps> = ({ city, className }) =>
         </p>
       </div>
       
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
-            data={chartData}
-            margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-          >
-            <defs>
-              <linearGradient id="colorWater" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.1}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis 
-              dataKey="year" 
-              tick={{ fontSize: 12 }}
-              tickLine={false}
-              axisLine={{ stroke: '#e2e8f0' }}
-            />
-            <YAxis 
-              tick={{ fontSize: 12 }}
-              tickLine={false}
-              axisLine={{ stroke: '#e2e8f0' }}
-              width={40}
-              tickFormatter={(value) => `${value < 1000 ? value : `${(value / 1000).toFixed(1)}k`}`}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Area 
-              type="monotone" 
-              dataKey="value" 
-              stroke="#0ea5e9" 
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorWater)"
-              activeDot={{ r: 6, strokeWidth: 0 }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+      {chartData.length === 0 ? (
+        <div className="h-64 flex items-center justify-center">
+          <p className="text-muted-foreground">No consumption data available</p>
+        </div>
+      ) : (
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={chartData}
+              margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
+            >
+              <defs>
+                <linearGradient id="colorWater" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.1}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis 
+                dataKey="year" 
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+                axisLine={{ stroke: '#e2e8f0' }}
+              />
+              <YAxis 
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+                axisLine={{ stroke: '#e2e8f0' }}
+                width={40}
+                tickFormatter={(value) => `${value < 1000 ? value : `${(value / 1000).toFixed(1)}k`}`}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Area 
+                type="monotone" 
+                dataKey="value" 
+                stroke="#0ea5e9" 
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorWater)"
+                activeDot={{ r: 6, strokeWidth: 0 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
       
       <div className="mt-4 text-sm text-muted-foreground">
         <p>

@@ -3,12 +3,13 @@ import { City, SupabaseCity } from "../types/cityTypes";
 
 // Convert Supabase city data to the format expected by components
 export const transformCityData = (supabaseCity: SupabaseCity): City => {
-  console.log("Transforming Supabase city data:", supabaseCity);
+  console.log("Raw Supabase city data:", supabaseCity);
   
   // Parse challenges from the key_challenges string
-  const challenges = supabaseCity.key_challenges 
-    ? supabaseCity.key_challenges.split(',').map(challenge => challenge.trim()) 
-    : ['Water scarcity', 'Aging infrastructure', 'Climate change impacts'];
+  let challenges = ['Water scarcity', 'Aging infrastructure', 'Climate change impacts']; // Default
+  if (supabaseCity.key_challenges) {
+    challenges = supabaseCity.key_challenges.split(',').map(challenge => challenge.trim());
+  }
 
   // Generate water consumption trends based on the daily usage
   const baseValue = supabaseCity.daily_water_usage_mgd || 1000;
