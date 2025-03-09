@@ -12,7 +12,7 @@ export const getSupabaseCities = async (): Promise<{ id: string; name: string; c
     // First, try to get data from Supabase
     const { data, error } = await supabase
       .from('CityWaterUsage')
-      .select('city_name, country');
+      .select('id, city_name, country');
 
     if (error) {
       console.error('Error fetching cities from Supabase:', error);
@@ -20,18 +20,15 @@ export const getSupabaseCities = async (): Promise<{ id: string; name: string; c
     }
 
     if (!data || data.length === 0) {
-      console.log('No cities found in Supabase, adding default data');
-      
-      // Merge default cities with any data we got from Supabase
-      const defaultCities = getDefaultCities();
-      return defaultCities;
+      console.log('No cities found in Supabase, using default data');
+      return getDefaultCities();
     }
 
     console.log('Successfully fetched cities from Supabase:', data);
     
     // Transform the data to the required format
     const cities = data.map((city) => ({
-      id: city.city_name.toLowerCase().replace(/\s+/g, '_'),
+      id: city.id || city.city_name.toLowerCase().replace(/\s+/g, '_'),
       name: city.city_name,
       country: city.country || 'Unknown',
     }));
@@ -39,16 +36,18 @@ export const getSupabaseCities = async (): Promise<{ id: string; name: string; c
     // Add default cities to ensure we always have some data
     const defaultCities = getDefaultCities();
     
-    // Combine and deduplicate
+    // Combine and deduplicate based on city name (case-insensitive)
     const combinedCities = [...cities];
     
     // Add default cities that aren't already in the list
     defaultCities.forEach(defaultCity => {
-      if (!combinedCities.some(city => city.id === defaultCity.id)) {
+      if (!combinedCities.some(city => 
+        city.name.toLowerCase() === defaultCity.name.toLowerCase())) {
         combinedCities.push(defaultCity);
       }
     });
     
+    console.log('Combined cities list:', combinedCities);
     return combinedCities;
   } catch (err) {
     console.error('Unexpected error in getSupabaseCities:', err);
@@ -60,6 +59,22 @@ export const getSupabaseCities = async (): Promise<{ id: string; name: string; c
 export const getSupabaseCityById = async (id: string): Promise<City | undefined> => {
   try {
     console.log(`Starting fetch for city ID: ${id}`);
+    
+    // First try to find by ID
+    const { data: idData, error: idError } = await supabase
+      .from('CityWaterUsage')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+      
+    if (idData) {
+      console.log(`Found city with ID: ${id}`, idData);
+      return transformCityData(idData as SupabaseCity);
+    }
+    
+    if (idError) {
+      console.error('Error fetching city by ID from Supabase:', idError);
+    }
     
     // Convert the ID format (underscore) to a potential city name (spaces)
     const cityNameFromId = id.split('_').map(word => 

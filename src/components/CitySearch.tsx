@@ -53,7 +53,7 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
     // More permissive matching algorithm
     const matches = cities.filter(city => {
       const cityNameLower = city.name.toLowerCase();
-      const countryLower = city.country.toLowerCase();
+      const countryLower = (city.country || '').toLowerCase();
       
       // Match if any part of the city name or country includes the query
       return cityNameLower.includes(lowerCaseQuery) || 
@@ -106,7 +106,7 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
         >
           <div className="flex items-center">
             <Search className="w-4 h-4 text-gray-500 mr-2" />
-            <span className="text-gray-800">{selectedCity ? `${selectedCity.name}, ${selectedCity.country}` : 'Select a city'}</span>
+            <span className="text-gray-800">{selectedCity ? `${selectedCity.name}, ${selectedCity.country || 'Unknown'}` : 'Select a city'}</span>
           </div>
           <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-0.5">
             {selectedCity ? 'Selected' : 'Choose'}
@@ -164,7 +164,7 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
                   >
                     <div className="flex justify-between items-center">
                       <span className="text-gray-800">{city.name}</span>
-                      <span className="text-gray-500 text-xs">{city.country}</span>
+                      <span className="text-gray-500 text-xs">{city.country || 'Unknown'}</span>
                     </div>
                   </button>
                 ))}
