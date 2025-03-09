@@ -102,30 +102,32 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
       <div className="relative">
         <button
           onClick={handleOpenDropdown}
-          className="w-full flex items-center justify-between p-4 bg-white rounded-lg shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-primary/50"
+          className="w-full flex items-center justify-between p-3 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-100 hover:border-gray-200 shadow-sm hover:shadow transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
         >
           <div className="flex items-center">
-            <Search className="w-4 h-4 text-gray-500 mr-2" />
-            <span className="text-gray-800">{selectedCity ? `${selectedCity.name}, ${selectedCity.country || 'Unknown'}` : 'Select a city'}</span>
+            <Search className="w-4 h-4 text-gray-400 mr-2" />
+            <span className="text-gray-700 text-sm font-medium">
+              {selectedCity ? `${selectedCity.name}, ${selectedCity.country || 'Unknown'}` : 'Select a city'}
+            </span>
           </div>
-          <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-0.5">
+          <span className="text-xs bg-blue-50 text-blue-600 rounded-full px-2 py-0.5">
             {selectedCity ? 'Selected' : 'Choose'}
           </span>
         </button>
       </div>
       
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg overflow-hidden z-10 animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white/95 backdrop-blur-sm rounded-lg border border-gray-100 shadow-lg overflow-hidden z-10 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="p-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 h-3.5 w-3.5" />
               <input
                 ref={inputRef}
                 type="text"
                 placeholder="Type to search cities..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full pl-10 pr-8 py-2 text-sm bg-transparent border-b border-gray-200 focus:border-primary/50 focus:outline-none text-gray-800"
+                className="w-full pl-8 pr-8 py-1.5 text-sm bg-transparent border-b border-gray-100 focus:border-primary/50 focus:outline-none text-gray-700"
                 autoFocus
               />
               {query && (
@@ -133,38 +135,38 @@ const CitySearch: React.FC<CitySearchProps> = ({ onSelect, selectedCityId }) => 
                   onClick={() => setQuery('')}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
           </div>
           
-          <div className="max-h-60 overflow-y-auto">
+          <div className="max-h-52 overflow-y-auto">
             {isLoading ? (
-              <div className="p-4 text-center">
-                <div className="w-6 h-6 border-2 border-t-transparent border-blue-500 rounded-full animate-spin mx-auto"></div>
+              <div className="py-3 text-center">
+                <div className="w-5 h-5 border-2 border-t-transparent border-blue-500 rounded-full animate-spin mx-auto"></div>
               </div>
             ) : isError ? (
-              <div className="p-4 text-center text-gray-500 text-sm">
+              <div className="p-3 text-center text-gray-500 text-xs">
                 Could not load cities. Please try again.
               </div>
             ) : filteredCities.length === 0 ? (
-              <div className="p-4 text-center text-gray-500 text-sm">
+              <div className="p-3 text-center text-gray-500 text-xs">
                 No cities match your search
               </div>
             ) : (
-              <div className="py-2">
+              <div className="py-1">
                 {filteredCities.map((city) => (
                   <button
                     key={city.id}
                     onClick={() => handleSelectCity(city.id)}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                      city.id === selectedCityId ? 'bg-gray-50 font-medium' : ''
+                    className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 transition-colors ${
+                      city.id === selectedCityId ? 'bg-blue-50/50 font-medium text-blue-700' : 'text-gray-700'
                     }`}
                   >
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-800">{city.name}</span>
-                      <span className="text-gray-500 text-xs">{city.country || 'Unknown'}</span>
+                      <span>{city.name}</span>
+                      <span className="text-gray-400 text-xs">{city.country || 'Unknown'}</span>
                     </div>
                   </button>
                 ))}
